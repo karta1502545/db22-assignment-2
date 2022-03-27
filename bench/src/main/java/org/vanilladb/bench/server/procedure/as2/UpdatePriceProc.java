@@ -40,7 +40,6 @@ public class UpdatePriceProc extends StoredProcedure<UpdateItemProcParamHelper> 
 			if (s.next()) {
 				String name = (String) s.getVal("i_name").asJavaVal();
 				double price = (Double) s.getVal("i_price").asJavaVal();
-
 				paramHelper.setItemName(name, idx);
 				paramHelper.setItemPrice(price, idx);
 			} else
