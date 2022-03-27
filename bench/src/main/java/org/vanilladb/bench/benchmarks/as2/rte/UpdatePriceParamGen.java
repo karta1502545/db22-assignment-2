@@ -29,7 +29,7 @@ public class UpdatePriceParamGen implements TxParamGenerator<As2BenchTransaction
 	@Override
 	public Object[] generateParameter() {
 		// [# of items]
-		return new Object[] {As2BenchConstants.NUM_ITEMS};
+		return new Object[] { As2BenchConstants.NUM_ITEMS };
 	}
 
 }

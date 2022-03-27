@@ -15,30 +15,27 @@
  *******************************************************************************/
 package org.vanilladb.bench.server.procedure.as2;
 
-import org.vanilladb.bench.server.param.as2.ReadItemProcParamHelper;
+import org.vanilladb.bench.server.param.as2.UpdateItemProcParamHelper;
 import org.vanilladb.bench.server.procedure.StoredProcedureHelper;
 import org.vanilladb.core.query.algebra.Scan;
 import org.vanilladb.core.sql.storedprocedure.StoredProcedure;
 import org.vanilladb.core.storage.tx.Transaction;
 
-public class UpdatePriceProc extends StoredProcedure<ReadItemProcParamHelper> {
+public class UpdatePriceProc extends StoredProcedure<UpdateItemProcParamHelper> {
 
-	public ReadItemTxnProc() {
-		super(new ReadItemProcParamHelper());
+	public UpdatePriceProc() {
+		super(new UpdateItemProcParamHelper());
 	}
 
 	@Override
 	protected void executeSql() {
-		ReadItemProcParamHelper paramHelper = getParamHelper();
+		UpdateItemProcParamHelper paramHelper = getParamHelper();
 		Transaction tx = getTransaction();
-		
+
 		// SELECT
 		for (int idx = 0; idx < paramHelper.getReadCount(); idx++) {
 			int iid = paramHelper.getReadItemId(idx);
-			Scan s = StoredProcedureHelper.executeQuery(
-				"SELECT i_name, i_price FROM item WHERE i_id = " + iid,
-				tx
-			);
+			Scan s = StoredProcedureHelper.executeQuery("SELECT i_name, i_price FROM item WHERE i_id = " + iid, tx);
 			s.beforeFirst();
 			if (s.next()) {
 				String name = (String) s.getVal("i_name").asJavaVal();
