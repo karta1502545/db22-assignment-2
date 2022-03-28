@@ -19,17 +19,33 @@ import org.vanilladb.bench.benchmarks.as2.As2BenchConstants;
 import org.vanilladb.bench.benchmarks.as2.As2BenchTransactionType;
 import org.vanilladb.bench.rte.TxParamGenerator;
 
+import org.vanilladb.bench.util.RandomValueGenerator;
+import java.util.LinkedList;
+import org.vanilladb.bench.benchmarks.as2.rte.jdbc.*;
+
 public class UpdatePriceParamGen implements TxParamGenerator<As2BenchTransactionType> {
+	
+	private static final int Update_Num = 10;
 
 	@Override
 	public As2BenchTransactionType getTxnType() {
-		return As2BenchTransactionType.TESTBED_LOADER;
+		return As2BenchTransactionType.UPDATE_ITEM_PRICE;
 	}
 
 	@Override
 	public Object[] generateParameter() {
 		// [# of items]
-		return new Object[] { As2BenchConstants.NUM_ITEMS };
+		RandomValueGenerator a = new RandomValueGenerator();
+		LinkedList<Object> List = new LinkedList<Object>();
+		
+		for(int i=0;i<Update_Num;i++) {
+			int id = a.number(0, As2BenchConstants.NUM_ITEMS);
+			double price_raise = a.number(0, 50)/10;
+			
+			List.add(new UpdateItemPriceTxnParam(id,price_raise));
+			
+		}
+		return List.toArray();
 	}
 
 }
