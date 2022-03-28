@@ -14,7 +14,7 @@
  * limitations under the License.
  *******************************************************************************/
 package org.vanilladb.bench.benchmarks.as2.rte;
-
+ 
 import org.vanilladb.bench.benchmarks.as2.As2BenchConstants;
 import org.vanilladb.bench.benchmarks.as2.As2BenchTransactionType;
 import org.vanilladb.bench.rte.TxParamGenerator;
