@@ -22,7 +22,8 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -106,6 +107,9 @@ public class StatisticMgr {
 				fileName += "-" + fileNamePostfix; // E.g. "20220324-200824-postfix"
 
 			outputDetailReport(fileName);
+			
+			//output another report
+			outputAnotherReport(fileName);
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -181,4 +185,78 @@ public class StatisticMgr {
 					abortedTotal, Math.round(avgResTimeMs / 1000000)));
 		}
 	}
+	private void outputAnotherReport(String fileName) throws IOException {
+//		Map<BenchTransactionType, TxnStatistic> txnStatistics = new HashMap<BenchTransactionType, TxnStatistic>();
+//		Map<BenchTransactionType, Integer> abortedCounts = new HashMap<BenchTransactionType, Integer>();
+//
+//		for (BenchTransactionType type : allTxTypes) {
+//			txnStatistics.put(type, new TxnStatistic(type));
+//			abortedCounts.put(type, 0);
+//		}
+
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(outputDir, fileName + ".csv")))) {
+			// First line: total transaction count
+			writer.write("time(sec), throughput(txs), avg_latency(ms), min(ms), max(ms), 25th_lat(ms), median_lat(ms), 75th_lat(ms)");
+			writer.newLine();
+		
+			//sort result sets
+			Collections.sort(resultSets, new Comparator<TxnResultSet>() {
+				@Override
+				public int compare(TxnResultSet o1, TxnResultSet o2) {
+					return (int) (o1.getTxnEndTime() - o2.getTxnEndTime());
+				}
+			});
+			
+			long startTime = resultSets.get(0).getTxnEndTime();
+			ArrayList<ArrayList<TxnResultSet>> segment = new ArrayList<ArrayList<TxnResultSet>>();
+			ArrayList<TxnResultSet> inner = new ArrayList<TxnResultSet>();
+			segment.add(inner);
+			int i = 0;
+			
+			// Detail latency report
+			for (TxnResultSet resultSet : resultSets) {
+				if (Math.round((resultSet.getTxnEndTime() - startTime) / 5000000000L) <= i) {
+					segment.get(i).add(resultSet);
+				} else {
+					i++;
+					inner = new ArrayList<TxnResultSet>();
+					segment.add(inner);
+					segment.get(i).add(resultSet);
+				}
+			}
+			int time = 0;
+			long throught = 0, avgLatency = 0, minLatency = Long.MAX_VALUE, maxLatency = 0, lat_25 = 0, lat_med = 0, lat_75 = 0;
+			List<Long> resTimeIn5s = new ArrayList<Long>();
+			
+
+			// Last few lines: show the statistics for each type of transactions
+			int abortedTotal = 0;
+			for (Entry<BenchTransactionType, TxnStatistic> entry : txnStatistics.entrySet()) {
+				TxnStatistic value = entry.getValue();
+				int abortedCount = abortedCounts.get(entry.getKey());
+				abortedTotal += abortedCount;
+				long avgResTimeMs = 0;
+
+				if (value.txnCount > 0) {
+					avgResTimeMs = TimeUnit.NANOSECONDS.toMillis(value.getTotalResponseTime() / value.txnCount);
+				}
+
+				writer.write(value.getmType() + " - committed: " + value.getTxnCount() + ", aborted: " + abortedCount
+						+ ", avg latency: " + avgResTimeMs + " ms");
+
+				writer.newLine();
+			}
+
+			// Last line: Total statistics
+			int finishedCount = resultSets.size() - abortedTotal;
+			double avgResTimeMs = 0;
+			if (finishedCount > 0) { // Avoid "Divide By Zero"
+				for (TxnResultSet rs : resultSets)
+					avgResTimeMs += rs.getTxnResponseTime() / finishedCount;
+			}
+			writer.write(String.format("TOTAL - committed: %d, aborted: %d, avg latency: %d ms", finishedCount,
+					abortedTotal, Math.round(avgResTimeMs / 1000000)));
+		}
+	}
+	
 }

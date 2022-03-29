@@ -28,7 +28,7 @@ import org.vanilladb.bench.rte.jdbc.JdbcJob;
 import org.vanilladb.bench.server.param.as2.UpdateItemProcParamHelper;
 import org.vanilladb.bench.benchmarks.as2.As2BenchConstants;
 
-public class UpdateItemTxnJdbcJob implements JdbcJob {
+public class UpdateItemTxn implements JdbcJob {
 	private static Logger logger = Logger.getLogger(UpdateItemTxnJdbcJob.class.getName());
 
 	@Override
@@ -57,36 +57,35 @@ public class UpdateItemTxnJdbcJob implements JdbcJob {
 			// SELECT
 			for (int i = 0; i < 10; i++) {
 				String sql = "SELECT i_name FROM item WHERE i_id = " + itemIds[i];
-				double price;
+
 				rs = statement.executeQuery(sql);
 				rs.beforeFirst();
 				if (rs.next()) {
 					outputMsg.append(String.format("'%s', ", rs.getString("i_name")));
-					price = rs.getDouble("i_price");
+					double price = rs.getDouble("i_price");
+					if (price < As2BenchConstants.MAX_PRICE) {
+						price = Double.sum(price, raises[i]);
+						sql = "Update item SET i_price = " + price + " WHERE i_id = " + itemIds[i];
+					} else {
+						sql = "Update item SET i_price = " + As2BenchConstants.MIN_PRICE + " WHERE i_id = "
+								+ itemIds[i];	
+					}
+					statement.executeUpdate(sql);
 				} else
 					throw new RuntimeException("cannot find the record with i_id = " + itemIds[i]);
 				rs.close();
-				
-				Double updatePrice = Double.sum(price, raises[i]);
-				sql = "Update item SET i_price = " + price + " WHERE i_id = " + itemIds[i];
-				int result = statement.executeUpdate(sql);
-				if(result == 0) {
-					throw new RuntimeException("cannot update the record with i_id = " + itemIds[i]);
-				}
 			}
+
 			conn.commit();
 
 			outputMsg.deleteCharAt(outputMsg.length() - 2);
 			outputMsg.append("]");
 
 			return new VanillaDbJdbcResultSet(true, outputMsg.toString());
-		}catch(
-
-	Exception e)
-	{
-		if (logger.isLoggable(Level.WARNING))
-			logger.warning(e.toString());
-		return new VanillaDbJdbcResultSet(false, "");
+		} catch (Exception e) {
+			if (logger.isLoggable(Level.WARNING))
+				logger.warning(e.toString());
+			return new VanillaDbJdbcResultSet(false, "");
+		}
 	}
-}
 }
