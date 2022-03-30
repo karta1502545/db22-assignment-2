@@ -39,7 +39,7 @@ public class UpdatePriceParamGen implements TxParamGenerator<As2BenchTransaction
 		
 		paramList.add(Update_Num);
 		for(int i=0;i<Update_Num;i++) {
-			int id = a.number(0, As2BenchConstants.NUM_ITEMS); // TODO: 1~n or 0~n?
+			int id = a.number(1, As2BenchConstants.NUM_ITEMS); // TODO: 1~n or 0~n?
 			double price_raise = a.number(0, 50)/10;
 			
 			paramList.add(id);
