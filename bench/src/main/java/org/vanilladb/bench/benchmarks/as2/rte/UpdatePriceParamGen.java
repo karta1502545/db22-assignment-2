@@ -20,7 +20,8 @@ import org.vanilladb.bench.benchmarks.as2.As2BenchTransactionType;
 import org.vanilladb.bench.rte.TxParamGenerator;
 
 import org.vanilladb.bench.util.RandomValueGenerator;
-import java.util.LinkedList;
+
+import java.util.ArrayList;
 
 public class UpdatePriceParamGen implements TxParamGenerator<As2BenchTransactionType> {
 	
@@ -35,7 +36,7 @@ public class UpdatePriceParamGen implements TxParamGenerator<As2BenchTransaction
 	public Object[] generateParameter() {
 		// [# of items]
 		RandomValueGenerator a = new RandomValueGenerator();
-		LinkedList<Object> paramList = new LinkedList<Object>();
+		ArrayList<Object> paramList = new ArrayList<Object>();
 		
 		paramList.add(Update_Num);
 		for(int i=0;i<Update_Num;i++) {
@@ -47,5 +48,4 @@ public class UpdatePriceParamGen implements TxParamGenerator<As2BenchTransaction
 		}
 		return paramList.toArray();
 	}
-
 }
