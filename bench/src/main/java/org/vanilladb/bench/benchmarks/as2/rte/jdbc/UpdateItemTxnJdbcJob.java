@@ -52,12 +52,12 @@ public class UpdateItemTxnJdbcJob implements JdbcJob {
 			// SELECT
 			for (int i = 0; i < paramHelper.getUpdateCount(); i++) {
 				int itemId = paramHelper.getUpdateItemId(i);
-				String sql = "SELECT i_name, i_price FROM item WHERE i_id = " + paramHelper.getUpdateItemId(i);
+				String sql = "SELECT i_name, i_price FROM item WHERE i_id = " + itemId;
 				double price;
 				rs = statement.executeQuery(sql);
 				rs.beforeFirst();
 				if (rs.next()) {
-					outputMsg.append(String.format("'%s', ", rs.getString("i_name")));
+					// outputMsg.append(String.format("'%s', ", rs.getString("i_name")));
 					price = rs.getDouble("i_price");
 				} else
 					throw new RuntimeException("cannot find the record with i_id = " + itemId);

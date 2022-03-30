@@ -20,6 +20,7 @@ import org.vanilladb.bench.server.procedure.StoredProcedureHelper;
 import org.vanilladb.core.query.algebra.Scan;
 import org.vanilladb.core.sql.storedprocedure.StoredProcedure;
 import org.vanilladb.core.storage.tx.Transaction;
+import org.vanilladb.bench.benchmarks.as2.As2BenchConstants;
 
 public class UpdatePriceProc extends StoredProcedure<UpdateItemProcParamHelper> {
 
@@ -32,20 +33,38 @@ public class UpdatePriceProc extends StoredProcedure<UpdateItemProcParamHelper> 
 		UpdateItemProcParamHelper paramHelper = getParamHelper();
 		Transaction tx = getTransaction();
 
+		double maxPrice = As2BenchConstants.MAX_PRICE;
+		double minPrice = As2BenchConstants.MIN_PRICE;
+
 		// SELECT
-		for (int idx = 0; idx < paramHelper.getReadCount(); idx++) {
-			int iid = paramHelper.getReadItemId(idx);
-			Scan s = StoredProcedureHelper.executeQuery("SELECT i_name, i_price FROM item WHERE i_id = " + iid, tx);
+		for (int idx = 0; idx < paramHelper.getUpdateCount(); idx++) {
+			int itemId = paramHelper.getUpdateItemId(idx);
+			
+			String sql = "SELECT i_name, i_price FROM item WHERE i_id = " + itemId;
+			Scan s = StoredProcedureHelper.executeQuery(sql, tx);
+			double price;
 			s.beforeFirst();
 			if (s.next()) {
-				String name = (String) s.getVal("i_name").asJavaVal();
-				double price = (Double) s.getVal("i_price").asJavaVal();
-				paramHelper.setItemName(name, idx);
-				paramHelper.setItemPrice(price, idx);
+				price = (Double) s.getVal("i_price").asJavaVal();
 			} else
-				throw new RuntimeException("Cloud not find item record with i_id = " + iid);
+				throw new RuntimeException("Cloud not find item record with i_id = " + itemId);
 
 			s.close();
+
+			Double updatePrice;
+			if(price > maxPrice) {
+				updatePrice = minPrice;
+			}
+			else {
+				updatePrice = Double.sum(price, paramHelper.getRaise(idx));
+			}
+
+			sql = "Update item SET i_price = " + updatePrice + " WHERE i_id = " + itemId;
+			int result = StoredProcedureHelper.executeUpdate(sql, tx);
+			if(result == 0) {
+				throw new RuntimeException("cannot update the record with i_id = " + itemId);
+			}
+			tx.commit();
 		}
 	}
 }
