@@ -64,7 +64,8 @@ public class UpdatePriceProc extends StoredProcedure<UpdateItemProcParamHelper> 
 			if(result == 0) {
 				throw new RuntimeException("cannot update the record with i_id = " + itemId);
 			}
-			tx.commit();
+			// tx.commit();
+			// executeSQL之後回到上一層會commit
 		}
 	}
 }
