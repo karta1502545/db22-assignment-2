@@ -22,21 +22,10 @@ import org.vanilladb.bench.rte.TxParamGenerator;
 import org.vanilladb.bench.util.RandomValueGenerator;
 
 import java.util.ArrayList;
+
 public class UpdatePriceParamGen implements TxParamGenerator<As2BenchTransactionType> {
 	
 	private static final int Update_Num = 10;
-
-	public class payload {
-		int updateNum;
-		int id;
-		double price_raise;
-
-		payload(int updateNum, int id, double price_raise) {
-			this.updateNum = updateNum;
-			this.id = id;
-			this.price_raise = price_raise;
-		}
-	};
 
 	@Override
 	public As2BenchTransactionType getTxnType() {
@@ -47,14 +36,15 @@ public class UpdatePriceParamGen implements TxParamGenerator<As2BenchTransaction
 	public Object[] generateParameter() {
 		// [# of items]
 		RandomValueGenerator a = new RandomValueGenerator();
-		ArrayList<payload> paramList = new ArrayList<payload>();
+		ArrayList<Object> paramList = new ArrayList<Object>();
 		
-		paramList.add(new payload(Update_Num, 0, 0));
+		paramList.add(Update_Num);
 		for(int i=0;i<Update_Num;i++) {
 			int id = a.number(1, As2BenchConstants.NUM_ITEMS); // TODO: 1~n or 0~n?
 			double price_raise = a.number(0, 50)/10;
 			
-			paramList.add(new payload(Update_Num, id, price_raise));
+			paramList.add(id);
+			paramList.add(price_raise);
 		}
 		return paramList.toArray();
 	}

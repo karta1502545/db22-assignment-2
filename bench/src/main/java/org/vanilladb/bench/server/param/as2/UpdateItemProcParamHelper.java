@@ -29,18 +29,6 @@ public class UpdateItemProcParamHelper extends StoredProcedureParamHelper {
 	private int[] updateItemId;
 	private double[] raises;
 
-	public class payload {
-		int updateNum;
-		int id;
-		double price_raise;
-
-		payload(int updateNum, int id, double price_raise) {
-			this.updateNum = updateNum;
-			this.id = id;
-			this.price_raise = price_raise;
-		}
-	};
-
 	public int getUpdateCount() {
 		return updateCount;
 	}
@@ -59,13 +47,15 @@ public class UpdateItemProcParamHelper extends StoredProcedureParamHelper {
 		// Show the contents of paramters
 	   //System.out.println("Params: " + Arrays.toString(pars));
 
-		updateCount = ((payload) pars[0]).updateNum;
+		int indexCnt = 0;
+
+		updateCount = (Integer) pars[indexCnt++];
 		updateItemId = new int[updateCount];
 		raises = new double[updateCount];
 
-		for (int i = 1; i <= updateCount; i++) {
-			updateItemId[i] = ((payload) pars[0]).id;
-			raises[i] = ((payload) pars[0]).price_raise;
+		for (int i = 0; i < updateCount; i++) {
+			updateItemId[i] = (Integer) pars[indexCnt++];
+			raises[i] = (Double) pars[indexCnt++];
 		}
 	}
 
