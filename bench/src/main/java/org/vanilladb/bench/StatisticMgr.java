@@ -210,29 +210,29 @@ public class StatisticMgr {
 			for (TxnResultSet resultSet : resultSets) {
 				if (resultSet.isTxnIsCommited()) {
 					//writer.write("QAQ");
-					writer.newLine();
 					segTime += resultSet.getTxnResponseTime();
 					latency.add(resultSet.getTxnResponseTime());
 					// If the segTime exceed 5 seconds
-					if (segTime >= timeInterval) {
-						startTime += timeInterval;
-						segTime -= timeInterval;
-						long txnSize = latency.size();
-						Collections.sort(latency);
-
-						writer.write(startTime + ", " +
-								txnSize + ", " +
-								TimeUnit.NANOSECONDS.toMillis(timeInterval / txnSize) + ", " +
-								TimeUnit.NANOSECONDS.toMillis(latency.get(0)) + ", " +
-								TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize - 1))) + ", " +
-								TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize / 4 - 1))) + ", " +
-								TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize / 2 - 1))) + ", " +
-								TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize / 4 * 3 - 1))));
-
-						latency.clear();
-						writer.newLine();
-					}
+					
 					//writer.write("QAQ2");
+				}
+				if (TimeUnit.NANOSECONDS.toSeconds(segTime) >= timeInterval) {
+					startTime += timeInterval;
+					segTime -= timeInterval*1000000000;
+					long txnSize = latency.size();
+					Collections.sort(latency);
+
+					writer.write(startTime + ", " +
+							txnSize + ", " +
+							TimeUnit.SECONDS.toMillis(timeInterval)/txnSize + ", " +
+							TimeUnit.NANOSECONDS.toMillis(latency.get(0)) + ", " +
+							TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize - 1))) + ", " +
+							TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize / 4))) + ", " +
+							TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize / 2))) + ", " +
+							TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize / 4 * 3))));
+
+					latency.clear();
+					writer.newLine();
 				}
 				// If aborted
 				// else {
@@ -247,12 +247,12 @@ public class StatisticMgr {
 
 				writer.write(startTime + ", " +
 						txnSize + ", " +
-						TimeUnit.NANOSECONDS.toMillis(timeInterval / txnSize) + ", " +
+						TimeUnit.SECONDS.toMillis(timeInterval)/txnSize + ", " +
 						TimeUnit.NANOSECONDS.toMillis(latency.get(0)) + ", " +
 						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize - 1)) + ", " +
-						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize / 4 - 1)) + ", " +
-						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize / 2 - 1)) + ", " +
-						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize / 4 * 3 - 1)));
+						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize / 4)) + ", " +
+						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize / 2)) + ", " +
+						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize / 4 * 3)));
 
 				latency.clear();
 				writer.newLine();
