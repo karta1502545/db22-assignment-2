@@ -37,6 +37,10 @@ public class UpdateItemProcParamHelper extends StoredProcedureParamHelper {
 		return updateItemId[index];
 	}
 
+	public double getRaise(int index) {
+		return raises[index];
+	}
+
 	@Override
 	public void prepareParameters(Object... pars) {
 
