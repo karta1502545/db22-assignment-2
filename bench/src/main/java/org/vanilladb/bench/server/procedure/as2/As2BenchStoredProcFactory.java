@@ -34,6 +34,8 @@ public class As2BenchStoredProcFactory implements StoredProcedureFactory {
 		case READ_ITEM:
 			sp = new ReadItemTxnProc();
 			break;
+		case UPDATE_ITEM_PRICE:
+			sp = new UpdatePriceProc();
 		default:
 			throw new UnsupportedOperationException("The benchmarker does not recognize procedure " + pid + "");
 		}

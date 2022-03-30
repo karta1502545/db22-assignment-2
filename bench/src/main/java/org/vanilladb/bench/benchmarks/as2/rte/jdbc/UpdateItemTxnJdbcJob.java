@@ -33,18 +33,12 @@ public class UpdateItemTxnJdbcJob implements JdbcJob {
 
 	@Override
 	public SutResultSet execute(Connection conn, Object[] pars) throws SQLException {
-		// TODO
-		// UpdateItemProcParamHelper paramHelper = new UpdateItemProcParamHelper();
-		// paramHelper.prepareParameters(pars);
+		// modified by bobby
+		UpdateItemProcParamHelper paramHelper = new UpdateItemProcParamHelper();
+		paramHelper.prepareParameters(pars);
 
-		// Parse parameter
-		int updateCount = (Integer) pars[0];
-		int[] itemIds = new int[updateCount];
-		double[] raises = new double[updateCount];
-		for (int i = 0; i < updateCount; i++) {
-			itemIds[i] = (Integer) pars[++i];
-			raises[i] = (double) ((Integer) pars[i + updateCount + 1]) / 10.0;
-		}
+		double maxPrice = As2BenchConstants.MAX_PRICE;
+		double minPrice = As2BenchConstants.MIN_PRICE;
 
 		// Output message
 		StringBuilder outputMsg = new StringBuilder("[");
@@ -53,10 +47,12 @@ public class UpdateItemTxnJdbcJob implements JdbcJob {
 		try {
 			Statement statement = conn.createStatement();
 			ResultSet rs = null;
-
+			
+			// TODO: distinguish sources of "raises" and "itemPrice"
 			// SELECT
-			for (int i = 0; i < 10; i++) {
-				String sql = "SELECT i_name FROM item WHERE i_id = " + itemIds[i];
+			for (int i = 0; i < paramHelper.getUpdateCount(); i++) {
+				int itemId = paramHelper.getUpdateItemId(i);
+				String sql = "SELECT i_name FROM item WHERE i_id = " + paramHelper.getUpdateItemId(i);
 				double price;
 				rs = statement.executeQuery(sql);
 				rs.beforeFirst();
@@ -64,14 +60,22 @@ public class UpdateItemTxnJdbcJob implements JdbcJob {
 					outputMsg.append(String.format("'%s', ", rs.getString("i_name")));
 					price = rs.getDouble("i_price");
 				} else
-					throw new RuntimeException("cannot find the record with i_id = " + itemIds[i]);
+					throw new RuntimeException("cannot find the record with i_id = " + itemId);
 				rs.close();
 				
-				Double updatePrice = Double.sum(price, raises[i]);
-				sql = "Update item SET i_price = " + price + " WHERE i_id = " + itemIds[i];
+				
+				
+				Double updatePrice;
+				if(price > maxPrice) {
+					updatePrice = minPrice;
+				}
+				else {
+					updatePrice = Double.sum(price, paramHelper.getRaise(i));
+				}
+				sql = "Update item SET i_price = " + updatePrice + " WHERE i_id = " + itemId;
 				int result = statement.executeUpdate(sql);
 				if(result == 0) {
-					throw new RuntimeException("cannot update the record with i_id = " + itemIds[i]);
+					throw new RuntimeException("cannot update the record with i_id = " + itemId);
 				}
 			}
 			conn.commit();
