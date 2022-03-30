@@ -242,6 +242,7 @@ public class StatisticMgr {
 			}
 			// Check if there exist transaction that not reach 5 seconds
 			if (latency.size() > 0) {
+				startTime += timeInterval;
 
 				long txnSize = latency.size();
 				Collections.sort(latency);

@@ -47,7 +47,7 @@ public class UpdatePriceProc extends StoredProcedure<UpdateItemProcParamHelper> 
 			if (s.next()) {
 				price = (Double) s.getVal("i_price").asJavaVal();
 			} else
-				throw new RuntimeException("Cloud not find item record with i_id = " + itemId);
+				throw new RuntimeException("Could not find item record with i_id = " + itemId);
 
 			s.close();
 

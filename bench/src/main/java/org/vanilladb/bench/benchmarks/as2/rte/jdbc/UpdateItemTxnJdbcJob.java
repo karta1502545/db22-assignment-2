@@ -59,8 +59,9 @@ public class UpdateItemTxnJdbcJob implements JdbcJob {
 				if (rs.next()) {
 					// outputMsg.append(String.format("'%s', ", rs.getString("i_name")));
 					price = rs.getDouble("i_price");
-				} else
+				} else {
 					throw new RuntimeException("cannot find the record with i_id = " + itemId);
+				}
 				rs.close();
 				
 				
@@ -80,7 +81,7 @@ public class UpdateItemTxnJdbcJob implements JdbcJob {
 			}
 			conn.commit();
 
-			outputMsg.deleteCharAt(outputMsg.length() - 2);
+			//outputMsg.deleteCharAt(outputMsg.length()-2);
 			outputMsg.append("]");
 
 			return new VanillaDbJdbcResultSet(true, outputMsg.toString());
