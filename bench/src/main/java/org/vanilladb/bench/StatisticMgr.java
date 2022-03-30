@@ -202,29 +202,30 @@ public class StatisticMgr {
 					"time(sec), throughput(txs), avg_latency(ms), min(ms), max(ms), 25th_lat(ms), median_lat(ms), 75th_lat(ms)");
 			writer.newLine();
 
-			long startTime = 0;
-			long segTime = 0;
+			long startTime = 0; //s
+			long segTime = 0;   //ns
 			int timeInterval = 5;
+			
 			ArrayList<Long> latency = new ArrayList<Long>();
 			// Detail latency report
 			for (TxnResultSet resultSet : resultSets) {
 				if (resultSet.isTxnIsCommited()) {
 					//writer.write("QAQ");
-					segTime += resultSet.getTxnResponseTime();
-					latency.add(resultSet.getTxnResponseTime());
+					segTime += resultSet.getTxnResponseTime();  //ns
+					latency.add(resultSet.getTxnResponseTime());  
 					// If the segTime exceed 5 seconds
 					
 					//writer.write("QAQ2");
 				}
-				if (TimeUnit.NANOSECONDS.toSeconds(segTime) >= timeInterval) {
+				if (segTime >= TimeUnit.SECONDS.toNanos(timeInterval)) {
 					startTime += timeInterval;
-					segTime -= timeInterval*1000000000;
+					segTime -= TimeUnit.SECONDS.toNanos(timeInterval);
 					long txnSize = latency.size();
 					Collections.sort(latency);
 
 					writer.write(startTime + ", " +
-							txnSize + ", " +
-							TimeUnit.SECONDS.toMillis(timeInterval)/txnSize + ", " +
+							txnSize + ", " +                                                                  // throughput
+							TimeUnit.SECONDS.toMillis(timeInterval)/txnSize + ", " +                          // average latency
 							TimeUnit.NANOSECONDS.toMillis(latency.get(0)) + ", " +
 							TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize - 1))) + ", " +
 							TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize / 4))) + ", " +
