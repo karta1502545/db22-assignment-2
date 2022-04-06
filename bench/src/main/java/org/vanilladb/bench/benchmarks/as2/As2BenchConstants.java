@@ -20,12 +20,10 @@ import org.vanilladb.bench.util.BenchProperties;
 public class As2BenchConstants {
 
 	public static final int NUM_ITEMS;
-	public static final double Read_Write_Tx_Rate;
 	
 	static {
 		NUM_ITEMS = BenchProperties.getLoader().getPropertyAsInteger(
 				As2BenchConstants.class.getName() + ".NUM_ITEMS", 100000);
-		Read_Write_Tx_Rate = BenchProperties.getLoader().getPropertyAsDouble(As2BenchConstants.class.getName()+".Read_Write_Tx_Rate", 0.5);
 	}
 
 	public static final int MIN_IM = 1;

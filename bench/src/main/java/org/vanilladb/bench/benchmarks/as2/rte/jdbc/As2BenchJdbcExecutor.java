@@ -34,8 +34,6 @@ public class As2BenchJdbcExecutor implements JdbcExecutor<As2BenchTransactionTyp
 			return new CheckDatabaseJdbcJob().execute(conn, pars);
 		case READ_ITEM:
 			return new ReadItemTxnJdbcJob().execute(conn, pars);
-		case UPDATE_ITEM_PRICE:
-			return new UpdateItemTxnJdbcJob().execute(conn,pars);
 		default:
 			throw new UnsupportedOperationException(
 					String.format("no JDCB implementation for '%s'", txType));

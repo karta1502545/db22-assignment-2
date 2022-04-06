@@ -16,13 +16,9 @@
 package org.vanilladb.bench.benchmarks.as2.rte;
 
 import org.vanilladb.bench.StatisticMgr;
-import org.vanilladb.bench.benchmarks.as2.As2BenchConstants;
 import org.vanilladb.bench.benchmarks.as2.As2BenchTransactionType;
 import org.vanilladb.bench.remote.SutConnection;
 import org.vanilladb.bench.rte.RemoteTerminalEmulator;
-
-import org.vanilladb.bench.util.RandomValueGenerator;
-import org.vanilladb.bench.rte.*;
 
 public class As2BenchmarkRte extends RemoteTerminalEmulator<As2BenchTransactionType> {
 	
@@ -34,23 +30,10 @@ public class As2BenchmarkRte extends RemoteTerminalEmulator<As2BenchTransactionT
 	}
 	
 	protected As2BenchTransactionType getNextTxType() {
-		RandomValueGenerator rand = new RandomValueGenerator();
-		
-		if(rand.number(0, 99) < As2BenchConstants.Read_Write_Tx_Rate * 100) {
-			return As2BenchTransactionType.READ_ITEM;
-		}else
-			return As2BenchTransactionType.UPDATE_ITEM_PRICE;
+		return As2BenchTransactionType.READ_ITEM;
 	}
 	
 	protected As2BenchmarkTxExecutor getTxExeutor(As2BenchTransactionType type) {
-		TxParamGenerator<As2BenchTransactionType> argu;
-		
-		if(type == As2BenchTransactionType.UPDATE_ITEM_PRICE) {
-			argu = new UpdatePriceParamGen();
-		}else{
-			argu = new As2ReadItemParamGen();
-		}
-		executor = new As2BenchmarkTxExecutor(argu);
 		return executor;
 	}
 }
