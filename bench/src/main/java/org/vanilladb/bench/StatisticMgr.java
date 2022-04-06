@@ -19,10 +19,13 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -75,8 +78,7 @@ public class StatisticMgr {
 		this.timelineGranularity = timelineGranularity;
 	}
 
-	public StatisticMgr(Collection<BenchTransactionType> txTypes, File outputDir, String namePostfix,
-			int timelineGranularity) {
+	public StatisticMgr(Collection<BenchTransactionType> txTypes, File outputDir, String namePostfix, int timelineGranularity) {
 		this.allTxTypes = new LinkedList<BenchTransactionType>(txTypes);
 		this.outputDir = outputDir;
 		this.fileNamePostfix = namePostfix;
@@ -106,6 +108,9 @@ public class StatisticMgr {
 				fileName += "-" + fileNamePostfix; // E.g. "20220324-200824-postfix"
 
 			outputDetailReport(fileName);
+
+			// output another report
+			outputAnotherReport(fileName);
 
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -179,6 +184,81 @@ public class StatisticMgr {
 			}
 			writer.write(String.format("TOTAL - committed: %d, aborted: %d, avg latency: %d ms", finishedCount,
 					abortedTotal, Math.round(avgResTimeMs / 1000000)));
+		}
+	}
+
+	private void outputAnotherReport(String fileName) throws IOException {
+		Map<BenchTransactionType, TxnStatistic> txnStatistics = new HashMap<BenchTransactionType, TxnStatistic>();
+		Map<BenchTransactionType, Integer> abortedCounts = new HashMap<BenchTransactionType, Integer>();
+
+		for (BenchTransactionType type : allTxTypes) {
+			txnStatistics.put(type, new TxnStatistic(type));
+			abortedCounts.put(type, 0);
+		}
+
+		try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(outputDir, fileName + ".csv")))) {
+			// First line: total transaction count
+			writer.write(
+					"time(sec), throughput(txs), avg_latency(ms), min(ms), max(ms), 25th_lat(ms), median_lat(ms), 75th_lat(ms)");
+			writer.newLine();
+
+			long startTime = 0; //s
+			long segTime = 0;   //ns
+			int timeInterval = 5;
+			
+			ArrayList<Long> latency = new ArrayList<Long>();
+			// Detail latency report
+			for (TxnResultSet resultSet : resultSets) {
+				if (resultSet.isTxnIsCommited()) {
+					//writer.write("QAQ");
+					segTime += resultSet.getTxnResponseTime();  //ns
+					latency.add(resultSet.getTxnResponseTime());  
+					// If the segTime exceed 5 seconds
+					
+					//writer.write("QAQ2");
+				}
+				if (segTime >= TimeUnit.SECONDS.toNanos(timeInterval)) {
+					startTime += timeInterval;
+					segTime -= TimeUnit.SECONDS.toNanos(timeInterval);
+					long txnSize = latency.size();
+					Collections.sort(latency);
+
+					writer.write(startTime + ", " +
+							txnSize + ", " +                                                                  // throughput
+							TimeUnit.SECONDS.toMillis(timeInterval)/txnSize + ", " +                          // average latency
+							TimeUnit.NANOSECONDS.toMillis(latency.get(0)) + ", " +
+							TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize - 1))) + ", " +
+							TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize / 4))) + ", " +
+							TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize / 2))) + ", " +
+							TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize / 4 * 3))));
+
+					latency.clear();
+					writer.newLine();
+				}
+				// If aborted
+				// else {
+				// latency.add(resultSet.getTxnResponseTime());
+				// }
+			}
+			// Check if there exist transaction that not reach 5 seconds
+			if (latency.size() > 0) {
+				startTime += timeInterval;
+
+				long txnSize = latency.size();
+				Collections.sort(latency);
+
+				writer.write(startTime + ", " +
+						txnSize + ", " +
+						TimeUnit.SECONDS.toMillis(timeInterval)/txnSize + ", " +
+						TimeUnit.NANOSECONDS.toMillis(latency.get(0)) + ", " +
+						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize - 1)) + ", " +
+						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize / 4)) + ", " +
+						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize / 2)) + ", " +
+						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize / 4 * 3)));
+
+				latency.clear();
+				writer.newLine();
+			}
 		}
 	}
 }
