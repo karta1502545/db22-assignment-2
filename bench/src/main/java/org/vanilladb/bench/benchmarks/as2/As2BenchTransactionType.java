@@ -26,7 +26,8 @@ public enum As2BenchTransactionType implements BenchTransactionType {
 	
 	// Benchmarking procedures
 	READ_ITEM(true),
-	//TODO
+	
+	// Update procedures
 	UPDATE_ITEM_PRICE(true);
 	
 	public static As2BenchTransactionType fromProcedureId(int pid) {

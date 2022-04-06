@@ -20,37 +20,47 @@ import org.vanilladb.bench.benchmarks.as2.As2BenchConstants;
 import org.vanilladb.bench.benchmarks.as2.As2BenchTransactionType;
 import org.vanilladb.bench.remote.SutConnection;
 import org.vanilladb.bench.rte.RemoteTerminalEmulator;
-
+import org.vanilladb.bench.rte.TxParamGenerator;
 import org.vanilladb.bench.util.RandomValueGenerator;
-import org.vanilladb.bench.rte.*;
 
 public class As2BenchmarkRte extends RemoteTerminalEmulator<As2BenchTransactionType> {
 	
 	private As2BenchmarkTxExecutor executor;
+	private static final int precision = 100;
 
 	public As2BenchmarkRte(SutConnection conn, StatisticMgr statMgr, long sleepTime) {
 		super(conn, statMgr, sleepTime);
-		executor = new As2BenchmarkTxExecutor(new As2ReadItemParamGen());
 	}
 	
 	protected As2BenchTransactionType getNextTxType() {
-		RandomValueGenerator rand = new RandomValueGenerator();
+		RandomValueGenerator rvg = new RandomValueGenerator();
 		
-		if(rand.number(0, 99) < As2BenchConstants.Read_Write_Tx_Rate * 100) {
+		// flag would be 100 if READ_WRITE_TX_RATE is 1.0
+		int flag = (int) (As2BenchConstants.READ_WRITE_TX_RATE * precision);
+
+		if (rvg.number(0, precision - 1) < flag) {
 			return As2BenchTransactionType.READ_ITEM;
-		}else
+		} else {
 			return As2BenchTransactionType.UPDATE_ITEM_PRICE;
+		}
 	}
 	
 	protected As2BenchmarkTxExecutor getTxExeutor(As2BenchTransactionType type) {
-		TxParamGenerator<As2BenchTransactionType> argu;
-		
-		if(type == As2BenchTransactionType.UPDATE_ITEM_PRICE) {
-			argu = new UpdatePriceParamGen();
-		}else{
-			argu = new As2ReadItemParamGen();
+		TxParamGenerator<As2BenchTransactionType> paraGen;
+		switch (type) {
+		case READ_ITEM:
+			paraGen = new As2ReadItemParamGen();
+			break;
+
+		case UPDATE_ITEM_PRICE:
+			paraGen = new As2UpdateItemPriceTxnParamGen();
+			break;
+
+		default:
+			paraGen = new As2ReadItemParamGen();
+			break;
 		}
-		executor = new As2BenchmarkTxExecutor(argu);
+		executor = new As2BenchmarkTxExecutor(paraGen);
 		return executor;
 	}
 }

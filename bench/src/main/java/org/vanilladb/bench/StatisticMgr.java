@@ -19,18 +19,17 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.sql.Time;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -71,6 +70,7 @@ public class StatisticMgr {
 	private List<BenchTransactionType> allTxTypes;
 	private String fileNamePostfix = "";
 	private long recordStartTime = -1;
+	private TreeMap<Long, ArrayList<Long>> latencyHistory = new TreeMap<Long, ArrayList<Long>>();
 
 	public StatisticMgr(Collection<BenchTransactionType> txTypes, File outputDir, int timelineGranularity) {
 		this.allTxTypes = new LinkedList<BenchTransactionType>(txTypes);
@@ -78,7 +78,8 @@ public class StatisticMgr {
 		this.timelineGranularity = timelineGranularity;
 	}
 
-	public StatisticMgr(Collection<BenchTransactionType> txTypes, File outputDir, String namePostfix, int timelineGranularity) {
+	public StatisticMgr(Collection<BenchTransactionType> txTypes, File outputDir, String namePostfix,
+			int timelineGranularity) {
 		this.allTxTypes = new LinkedList<BenchTransactionType>(txTypes);
 		this.outputDir = outputDir;
 		this.fileNamePostfix = namePostfix;
@@ -109,9 +110,8 @@ public class StatisticMgr {
 
 			outputDetailReport(fileName);
 
-			// output another report
-			outputAnotherReport(fileName);
-
+			outputAs2Report(fileName);
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -145,6 +145,9 @@ public class StatisticMgr {
 					// Count transaction for each type
 					TxnStatistic txnStatistic = txnStatistics.get(resultSet.getTxnType());
 					txnStatistic.addTxnResponseTime(resultSet.getTxnResponseTime());
+					
+					// For another report
+					addTxnLatency(resultSet);
 
 				} else {
 					writer.write(resultSet.getTxnType() + ": ABORTED");
@@ -186,79 +189,86 @@ public class StatisticMgr {
 					abortedTotal, Math.round(avgResTimeMs / 1000000)));
 		}
 	}
-
-	private void outputAnotherReport(String fileName) throws IOException {
-		Map<BenchTransactionType, TxnStatistic> txnStatistics = new HashMap<BenchTransactionType, TxnStatistic>();
-		Map<BenchTransactionType, Integer> abortedCounts = new HashMap<BenchTransactionType, Integer>();
-
-		for (BenchTransactionType type : allTxTypes) {
-			txnStatistics.put(type, new TxnStatistic(type));
-			abortedCounts.put(type, 0);
-		}
-
+	
+	private void outputAs2Report(String fileName) throws IOException {
 		try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(outputDir, fileName + ".csv")))) {
-			// First line: total transaction count
 			writer.write(
 					"time(sec), throughput(txs), avg_latency(ms), min(ms), max(ms), 25th_lat(ms), median_lat(ms), 75th_lat(ms)");
 			writer.newLine();
-
-			long startTime = 0; //s
-			long segTime = 0;   //ns
-			int timeInterval = 5;
 			
-			ArrayList<Long> latency = new ArrayList<Long>();
-			// Detail latency report
-			for (TxnResultSet resultSet : resultSets) {
-				if (resultSet.isTxnIsCommited()) {
-					//writer.write("QAQ");
-					segTime += resultSet.getTxnResponseTime();  //ns
-					latency.add(resultSet.getTxnResponseTime());  
-					// If the segTime exceed 5 seconds
-					
-					//writer.write("QAQ2");
-				}
-				if (segTime >= TimeUnit.SECONDS.toNanos(timeInterval)) {
-					startTime += timeInterval;
-					segTime -= TimeUnit.SECONDS.toNanos(timeInterval);
-					long txnSize = latency.size();
-					Collections.sort(latency);
-
-					writer.write(startTime + ", " +
-							txnSize + ", " +                                                                  // throughput
-							TimeUnit.SECONDS.toMillis(timeInterval)/txnSize + ", " +                          // average latency
-							TimeUnit.NANOSECONDS.toMillis(latency.get(0)) + ", " +
-							TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize - 1))) + ", " +
-							TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize / 4))) + ", " +
-							TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize / 2))) + ", " +
-							TimeUnit.NANOSECONDS.toMillis(latency.get((int) (txnSize / 4 * 3))));
-
-					latency.clear();
-					writer.newLine();
-				}
-				// If aborted
-				// else {
-				// latency.add(resultSet.getTxnResponseTime());
-				// }
-			}
-			// Check if there exist transaction that not reach 5 seconds
-			if (latency.size() > 0) {
-				startTime += timeInterval;
-
-				long txnSize = latency.size();
-				Collections.sort(latency);
-
-				writer.write(startTime + ", " +
-						txnSize + ", " +
-						TimeUnit.SECONDS.toMillis(timeInterval)/txnSize + ", " +
-						TimeUnit.NANOSECONDS.toMillis(latency.get(0)) + ", " +
-						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize - 1)) + ", " +
-						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize / 4)) + ", " +
-						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize / 2)) + ", " +
-						TimeUnit.NANOSECONDS.toMillis(latency.get((int) txnSize / 4 * 3)));
-
-				latency.clear();
+			for (long timeBound = 0, outCount = 0; outCount < latencyHistory.size(); timeBound += timelineGranularity) {
+				List<Long> slot = latencyHistory.get(timeBound);
+				if (slot != null) {
+					writer.write(makeStatString(timeBound, slot));
+					outCount++;
+				} else
+					writer.write(String.format("%d, 0, NaN, NaN, NaN, NaN, NaN, NaN", timeBound));
 				writer.newLine();
 			}
 		}
+	}
+
+	private void addTxnLatency(TxnResultSet rs) {
+		long elapsedTime = TimeUnit.NANOSECONDS.toSeconds(rs.getTxnEndTime() - recordStartTime);
+		long timeSlotBoundary = (elapsedTime / timelineGranularity) * timelineGranularity ; 
+		
+		
+		ArrayList<Long> timeSlot = latencyHistory.get(timeSlotBoundary );
+		if (timeSlot == null) {
+			timeSlot = new ArrayList<Long>();
+			latencyHistory.put(timeSlotBoundary, timeSlot);
+		}
+		timeSlot.add(TimeUnit.NANOSECONDS.toMillis(rs.getTxnResponseTime()));
+	}
+	
+	private String makeStatString(long timeSlotBoundary, List<Long> timeSlot) {
+		Collections.sort(timeSlot);
+
+		// Transfer it to unmodifiable in order to prevent modification
+		// when we use a sublist to access it.
+		timeSlot = Collections.unmodifiableList(timeSlot);
+
+		int count = timeSlot.size();
+		int middleOffset = timeSlot.size() / 2;
+		long lowerQ, upperQ, median;
+		double mean;
+
+		median = calcMedian(timeSlot);
+		mean = calcMean(timeSlot);
+
+		if (count < 2) { // Boundary case: there is only one number in the list
+			lowerQ = median;
+			upperQ = median;
+		} else if (count % 2 == 0) { // Even
+			lowerQ = calcMedian(timeSlot.subList(0, middleOffset));
+			upperQ = calcMedian(timeSlot.subList(middleOffset, count));
+		} else { // Odd
+			lowerQ = calcMedian(timeSlot.subList(0, middleOffset));
+			upperQ = calcMedian(timeSlot.subList(middleOffset + 1, count));
+		}
+		Long min = Collections.min(timeSlot);
+		Long max = Collections.max(timeSlot);
+
+		return String.format("%d, %d, %f, %d, %d, %d, %d, %d",
+				timeSlotBoundary, count, mean, min, max, lowerQ, median, upperQ);
+	}
+	
+	private Long calcMedian(List<Long> timeSlot) {
+		int count = timeSlot.size();
+		if (count % 2 != 0) // Odd
+			return timeSlot.get((count - 1) / 2);
+		else {// Even
+			long front = timeSlot.get(count / 2 - 1);
+			long back = timeSlot.get(count / 2);
+			return (front + back) / 2;
+		}
+	}
+	
+	private double calcMean(List<Long> timeSlot) {
+		double mean = 0;
+		double count = timeSlot.size();
+		for (Long lat : timeSlot)
+			mean += (lat / count);
+		return mean;
 	}
 }
